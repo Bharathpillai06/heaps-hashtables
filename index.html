@@ -1,0 +1,2185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Heaps & Hash Tables — OSU Study App</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f8f7f4;
+    --bg2: #ffffff;
+    --bg3: #f0ede8;
+    --text: #1a1a18;
+    --text2: #5a5a56;
+    --text3: #8a8a84;
+    --border: rgba(0,0,0,0.12);
+    --border2: rgba(0,0,0,0.08);
+    --purple: #534AB7;
+    --purple-light: #EEEDFE;
+    --purple-mid: #AFA9EC;
+    --teal: #0F6E56;
+    --teal-light: #E1F5EE;
+    --teal-mid: #5DCAA5;
+    --amber: #BA7517;
+    --amber-light: #FAEEDA;
+    --amber-mid: #EF9F27;
+    --coral: #993C1D;
+    --coral-light: #FAECE7;
+    --coral-mid: #D85A30;
+    --blue: #185FA5;
+    --blue-light: #E6F1FB;
+    --blue-mid: #378ADD;
+    --red: #A32D2D;
+    --red-light: #FCEBEB;
+    --green: #3B6D11;
+    --green-light: #EAF3DE;
+    --green-mid: #639922;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a18;
+      --bg2: #242422;
+      --bg3: #2e2e2b;
+      --text: #e8e6df;
+      --text2: #a8a89e;
+      --text3: #6a6a64;
+      --border: rgba(255,255,255,0.12);
+      --border2: rgba(255,255,255,0.07);
+      --purple-light: #2a2650;
+      --teal-light: #0a2e24;
+      --amber-light: #2e2010;
+      --coral-light: #2e1810;
+      --blue-light: #0c1e38;
+      --red-light: #2e1010;
+      --green-light: #0c2004;
+    }
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* LAYOUT */
+  .app { display: flex; height: 100vh; overflow: hidden; }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 260px;
+    min-width: 260px;
+    background: var(--bg2);
+    border-right: 0.5px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .sidebar-header {
+    padding: 20px 16px 12px;
+    border-bottom: 0.5px solid var(--border2);
+  }
+
+  .sidebar-header h1 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .sidebar-header p {
+    font-size: 12px;
+    color: var(--text3);
+  }
+
+  .progress-bar-wrap {
+    margin-top: 10px;
+    background: var(--bg3);
+    border-radius: 4px;
+    height: 4px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--purple);
+    border-radius: 4px;
+    transition: width 0.4s ease;
+  }
+
+  .progress-label {
+    font-size: 11px;
+    color: var(--text3);
+    margin-top: 4px;
+  }
+
+  .nav-section {
+    padding: 8px 0;
+    border-bottom: 0.5px solid var(--border2);
+  }
+
+  .nav-section-title {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 6px 16px 4px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text2);
+    transition: background 0.15s;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+  }
+
+  .nav-item:hover { background: var(--bg3); }
+
+  .nav-item.active {
+    background: var(--purple-light);
+    color: var(--purple);
+    font-weight: 500;
+  }
+
+  .nav-item .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--border);
+    flex-shrink: 0;
+  }
+
+  .nav-item.done .dot { background: var(--teal-mid); }
+  .nav-item.active .dot { background: var(--purple); }
+
+  .quiz-btn {
+    margin: 12px;
+    padding: 10px;
+    background: var(--purple);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: center;
+    transition: opacity 0.15s;
+  }
+
+  .quiz-btn:hover { opacity: 0.88; }
+
+  /* MAIN CONTENT */
+  .main {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .top-bar {
+    padding: 16px 32px;
+    border-bottom: 0.5px solid var(--border2);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg2);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .top-bar h2 { font-size: 16px; font-weight: 600; }
+  .top-bar .tag {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-weight: 500;
+  }
+
+  .tag-heap { background: var(--purple-light); color: var(--purple); }
+  .tag-hash { background: var(--teal-light); color: var(--teal); }
+  .tag-quiz { background: var(--amber-light); color: var(--amber); }
+
+  .content-area { padding: 32px; max-width: 860px; }
+
+  /* LESSON CARDS */
+  .lesson-intro {
+    background: var(--bg2);
+    border: 0.5px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+
+  .lesson-intro h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .lesson-intro p {
+    font-size: 14px;
+    color: var(--text2);
+    line-height: 1.7;
+  }
+
+  .concept-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .concept-card {
+    background: var(--bg2);
+    border: 0.5px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+
+  .concept-card .label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text3);
+    margin-bottom: 6px;
+  }
+
+  .concept-card .value {
+    font-size: 20px;
+    font-weight: 600;
+    font-family: monospace;
+    color: var(--purple);
+    margin-bottom: 4px;
+  }
+
+  .concept-card p {
+    font-size: 12px;
+    color: var(--text2);
+  }
+
+  /* VISUALIZER */
+  .viz-container {
+    background: var(--bg2);
+    border: 0.5px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+
+  .viz-header {
+    padding: 14px 20px;
+    border-bottom: 0.5px solid var(--border2);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .viz-header h4 { font-size: 14px; font-weight: 600; }
+
+  .viz-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 12px 20px;
+    border-bottom: 0.5px solid var(--border2);
+    background: var(--bg3);
+  }
+
+  .viz-controls input[type="number"] {
+    width: 70px;
+    padding: 6px 8px;
+    border: 0.5px solid var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+    background: var(--bg2);
+    color: var(--text);
+  }
+
+  .btn {
+    padding: 6px 14px;
+    border: 0.5px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg2);
+    color: var(--text);
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .btn:hover { background: var(--bg3); }
+
+  .btn-primary {
+    background: var(--purple);
+    color: white;
+    border-color: var(--purple);
+  }
+
+  .btn-primary:hover { opacity: 0.88; }
+
+  .btn-danger {
+    background: var(--red-light);
+    color: var(--red);
+    border-color: var(--red);
+  }
+
+  canvas { display: block; }
+
+  .viz-canvas { padding: 16px; }
+
+  .log-area {
+    padding: 10px 20px;
+    font-size: 12px;
+    font-family: monospace;
+    color: var(--text2);
+    border-top: 0.5px solid var(--border2);
+    min-height: 32px;
+    background: var(--bg3);
+  }
+
+  /* ALGORITHM STEPS */
+  .algo-box {
+    background: var(--bg3);
+    border: 0.5px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    font-family: monospace;
+    font-size: 13px;
+    line-height: 1.9;
+  }
+
+  .algo-box .kw { color: var(--purple); font-weight: 600; }
+  .algo-box .cm { color: var(--text3); }
+  .algo-box .fn { color: var(--blue); }
+  .algo-box .num { color: var(--coral); }
+
+  /* COMPLEXITY TABLE */
+  .complexity-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 24px;
+    font-size: 13px;
+  }
+
+  .complexity-table th {
+    background: var(--bg3);
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 12px;
+    border-bottom: 0.5px solid var(--border);
+    color: var(--text2);
+  }
+
+  .complexity-table td {
+    padding: 10px 14px;
+    border-bottom: 0.5px solid var(--border2);
+  }
+
+  .complexity-table tr:last-child td { border-bottom: none; }
+
+  .good { color: var(--green); font-weight: 600; }
+  .bad { color: var(--red); font-weight: 600; }
+  .ok { color: var(--amber); font-weight: 600; }
+
+  /* QUIZ */
+  .quiz-section { display: none; }
+  .quiz-section.active { display: block; }
+
+  .quiz-q {
+    background: var(--bg2);
+    border: 0.5px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+
+  .quiz-q .q-num {
+    font-size: 11px;
+    color: var(--text3);
+    margin-bottom: 8px;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  .quiz-q .q-text {
+    font-size: 15px;
+    font-weight: 500;
+    margin-bottom: 16px;
+  }
+
+  .quiz-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    border: 0.5px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s;
+    font-size: 13px;
+    background: var(--bg3);
+  }
+
+  .quiz-option:hover { background: var(--purple-light); }
+
+  .quiz-option.correct {
+    background: var(--green-light);
+    border-color: var(--green);
+    color: var(--green);
+    font-weight: 500;
+  }
+
+  .quiz-option.wrong {
+    background: var(--red-light);
+    border-color: var(--red);
+    color: var(--red);
+  }
+
+  .quiz-option.selected-wrong {
+    background: var(--red-light);
+    border-color: var(--red);
+  }
+
+  .option-letter {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--bg2);
+    border: 0.5px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .explanation {
+    margin-top: 14px;
+    padding: 12px 14px;
+    background: var(--blue-light);
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--blue);
+    display: none;
+    line-height: 1.6;
+  }
+
+  .explanation.show { display: block; }
+
+  /* SCORE CARD */
+  .score-card {
+    background: var(--bg2);
+    border: 0.5px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    text-align: center;
+    margin-bottom: 24px;
+  }
+
+  .score-big { font-size: 56px; font-weight: 700; color: var(--purple); }
+  .score-sub { font-size: 16px; color: var(--text2); margin-top: 4px; }
+
+  /* HASH VIZ */
+  .hash-table-viz {
+    display: flex;
+    gap: 0;
+    align-items: flex-start;
+    padding: 16px 20px;
+    overflow-x: auto;
+  }
+
+  .hash-slot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 56px;
+  }
+
+  .hash-slot-idx {
+    font-size: 10px;
+    color: var(--text3);
+    font-family: monospace;
+    margin-bottom: 4px;
+  }
+
+  .hash-slot-box {
+    width: 52px;
+    height: 40px;
+    border: 0.5px solid var(--border);
+    border-right: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-family: monospace;
+    color: var(--text);
+    background: var(--bg3);
+    position: relative;
+    transition: background 0.3s;
+  }
+
+  .hash-slot:last-child .hash-slot-box { border-right: 0.5px solid var(--border); }
+
+  .hash-slot-box.filled {
+    background: var(--purple-light);
+    color: var(--purple);
+    font-weight: 600;
+  }
+
+  .hash-slot-box.highlight {
+    background: var(--amber-light);
+    color: var(--amber);
+    border-color: var(--amber);
+  }
+
+  .chain-list {
+    margin-top: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .chain-node {
+    width: 52px;
+    height: 28px;
+    border: 0.5px solid var(--purple-mid);
+    border-radius: 4px;
+    background: var(--purple-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-family: monospace;
+    color: var(--purple);
+    font-weight: 600;
+  }
+
+  /* SECTION STYLES */
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* INFO BOX */
+  .info-box {
+    border-left: 3px solid var(--purple);
+    background: var(--purple-light);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: var(--text);
+  }
+
+  .info-box strong { color: var(--purple); }
+
+  .warn-box {
+    border-left: 3px solid var(--amber);
+    background: var(--amber-light);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    font-size: 13px;
+  }
+
+  .warn-box strong { color: var(--amber); }
+
+  /* HEAP ARRAY DISPLAY */
+  .array-display {
+    display: flex;
+    gap: 0;
+    margin-bottom: 8px;
+    overflow-x: auto;
+  }
+
+  .array-cell {
+    min-width: 44px;
+    height: 44px;
+    border: 0.5px solid var(--border);
+    border-right: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: background 0.3s;
+  }
+
+  .array-cell:last-child { border-right: 0.5px solid var(--border); }
+
+  .array-cell.highlight-insert { background: var(--teal-light); }
+  .array-cell.highlight-swap { background: var(--amber-light); }
+  .array-cell.highlight-extract { background: var(--coral-light); }
+
+  .array-cell .cell-val { font-size: 14px; font-family: monospace; font-weight: 600; }
+  .array-cell .cell-idx { font-size: 9px; color: var(--text3); position: absolute; bottom: 2px; right: 3px; }
+
+  /* OPEN ADDRESSING */
+  .open-slot-box.probed { background: var(--coral-light); border-color: var(--coral); color: var(--coral); }
+  .open-slot-box.placed { background: var(--teal-light); border-color: var(--teal); color: var(--teal); font-weight: 700; }
+
+  /* Flicker animation for newly inserted */
+  @keyframes insertFlash {
+    0% { background: var(--teal-mid); }
+    100% { background: var(--purple-light); }
+  }
+  .flash { animation: insertFlash 0.5s ease; }
+
+  /* NEXT/PREV NAV */
+  .lesson-nav {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 32px;
+    padding-top: 20px;
+    border-top: 0.5px solid var(--border2);
+  }
+
+  .lesson-nav .btn { min-width: 120px; }
+
+  h3.section-h { font-size: 17px; font-weight: 600; margin-bottom: 12px; margin-top: 24px; }
+  h3.section-h:first-child { margin-top: 0; }
+
+  p.body { font-size: 14px; color: var(--text); line-height: 1.75; margin-bottom: 14px; }
+  code { font-family: monospace; background: var(--bg3); padding: 1px 5px; border-radius: 3px; font-size: 13px; }
+
+  .math { font-family: monospace; font-size: 14px; color: var(--purple); background: var(--purple-light); padding: 2px 8px; border-radius: 4px; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  @media (max-width: 680px) { .two-col { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sidebar-header">
+    <h1>Heaps & Hash Tables</h1>
+    <p>OSU CSE Study Guide</p>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="progressBar" style="width:0%"></div>
+    </div>
+    <div class="progress-label" id="progressLabel">0 / 10 sections done</div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Heaps</div>
+    <button class="nav-item active" onclick="goTo(0)" id="nav0">
+      <span class="dot"></span> Binary Trees Basics
+    </button>
+    <button class="nav-item" onclick="goTo(1)" id="nav1">
+      <span class="dot"></span> Heap Definition
+    </button>
+    <button class="nav-item" onclick="goTo(2)" id="nav2">
+      <span class="dot"></span> Insert & Heapify-Up
+    </button>
+    <button class="nav-item" onclick="goTo(3)" id="nav3">
+      <span class="dot"></span> Extract-Max & Heapify-Down
+    </button>
+    <button class="nav-item" onclick="goTo(4)" id="nav4">
+      <span class="dot"></span> Heap Sort & Priority Queues
+    </button>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Hash Tables</div>
+    <button class="nav-item" onclick="goTo(5)" id="nav5">
+      <span class="dot"></span> Direct Address & Hashing
+    </button>
+    <button class="nav-item" onclick="goTo(6)" id="nav6">
+      <span class="dot"></span> Chaining & Analysis
+    </button>
+    <button class="nav-item" onclick="goTo(7)" id="nav7">
+      <span class="dot"></span> Hash Functions
+    </button>
+    <button class="nav-item" onclick="goTo(8)" id="nav8">
+      <span class="dot"></span> Open Addressing
+    </button>
+    <button class="nav-item" onclick="goTo(9)" id="nav9">
+      <span class="dot"></span> Complexity Comparison
+    </button>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Assessment</div>
+    <button class="nav-item" onclick="goTo(10)" id="nav10">
+      <span class="dot"></span> Practice Quiz
+    </button>
+  </div>
+
+  <button class="quiz-btn" onclick="goTo(10)">Take Full Quiz →</button>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="top-bar">
+    <h2 id="topTitle">Binary Trees Basics</h2>
+    <span class="tag tag-heap" id="topTag">Heaps</span>
+  </div>
+
+  <div class="content-area">
+
+    <!-- ===== SECTION 0: Binary Trees ===== -->
+    <div class="section active" id="sec0">
+      <div class="lesson-intro">
+        <h3>Binary Trees — The Foundation of Heaps</h3>
+        <p>A heap is built on a special type of binary tree. Before understanding heaps, we need to nail down a few key definitions from the OSU slides that are commonly tested.</p>
+      </div>
+
+      <h3 class="section-h">Key Definitions</h3>
+
+      <div class="two-col">
+        <div class="concept-card">
+          <div class="label">Binary Tree</div>
+          <p>A rooted tree where each node has <strong>at most 2 children</strong> (left and right). Nodes with no children are <strong>leaf nodes</strong>.</p>
+        </div>
+        <div class="concept-card">
+          <div class="label">Height</div>
+          <div class="value">h = log n</div>
+          <p>Number of edges on the <strong>longest path</strong> from root to a leaf.</p>
+        </div>
+        <div class="concept-card">
+          <div class="label">Complete Binary Tree</div>
+          <p>All internal nodes have <strong>exactly 2 children</strong> AND all leaves are at the <strong>same depth</strong>.</p>
+        </div>
+        <div class="concept-card">
+          <div class="label">Nearly Complete</div>
+          <p>All levels completely filled <strong>except the last</strong>, which fills left-to-right. This is what heaps use!</p>
+        </div>
+      </div>
+
+      <div class="info-box">
+        <strong>Theorem:</strong> A complete binary tree of height h has <span class="math">2^(h+1) − 1</span> nodes. Corollary: height ≈ <span class="math">log n</span>. This is why heap operations are O(log n)!
+      </div>
+
+      <h3 class="section-h">Array Index Formulas (Memorize These!)</h3>
+      <p class="body">Heaps store the tree in an array, 1-indexed. These three formulas navigate the tree:</p>
+
+      <div class="concept-grid">
+        <div class="concept-card">
+          <div class="label">Parent of node i</div>
+          <div class="value">⌊i/2⌋</div>
+          <p>Node 5's parent is at index 2</p>
+        </div>
+        <div class="concept-card">
+          <div class="label">Left child of i</div>
+          <div class="value">2i</div>
+          <p>Node 3's left child is at index 6</p>
+        </div>
+        <div class="concept-card">
+          <div class="label">Right child of i</div>
+          <div class="value">2i+1</div>
+          <p>Node 3's right child is at index 7</p>
+        </div>
+      </div>
+
+      <h3 class="section-h">Nearly Complete Tree — Visual</h3>
+      <div class="viz-container">
+        <div class="viz-header">
+          <h4>Tree with 6 nodes (1-indexed array)</h4>
+          <span class="tag tag-heap">Interactive</span>
+        </div>
+        <div class="viz-canvas">
+          <canvas id="treeCanvas0" width="760" height="220"></canvas>
+        </div>
+        <div class="log-area" id="treeLog0">Click a node to see its index, parent, and children.</div>
+      </div>
+
+      <div class="lesson-nav">
+        <button class="btn" disabled>← Previous</button>
+        <button class="btn btn-primary" onclick="nextSection()">Heap Definition →</button>
+      </div>
+    </div>
+
+    <!-- ===== SECTION 1: Heap Definition ===== -->
+    <div class="section" id="sec1">
+      <div class="lesson-intro">
+        <h3>What is a Heap?</h3>
+        <p>A heap is a <strong>nearly complete binary tree</strong> stored in an array that satisfies the <strong>heap property</strong>. There are two flavors: max-heap and min-heap.</p>
+      </div>
+
+      <div class="two-col">
+        <div class="concept-card" style="border-left: 3px solid var(--coral);">
+          <div class="label" style="color:var(--coral);">Max-Heap Property</div>
+          <p>Every parent ≥ its children.<br><strong>Root = maximum element</strong> in the entire heap.</p>
+        </div>
+        <div class="concept-card" style="border-left: 3px solid var(--blue);">
+          <div class="label" style="color:var(--blue);">Min-Heap Property</div>
+          <p>Every parent ≤ its children.<br><strong>Root = minimum element</strong> in the entire heap.</p>
+        </div>
+      </div>
+
+      <div class="warn-box">
+        <strong>Common Misconception:</strong> A heap is NOT a sorted array. Nodes on the same level have no guaranteed ordering relative to each other — only parent/child relationships matter.
+      </div>
+
+      <h3 class="section-h">Verify the Heap Property</h3>
+      <p class="body">The array below represents a max-heap. Click any node to verify it satisfies the heap property.</p>
+
+      <div class="viz-container">
+        <div class="viz-header">
+          <h4>Max-Heap: [_, 48, 42, 39, 17, 31, 34, 23, 12, 8, 20, 14, 9]</h4>
+        </div>
+        <div class="viz-canvas">
+          <canvas id="heapCanvas1" width="760" height="300"></canvas>
+        </div>
+        <div class="log-area" id="heapLog1">Click any node to check heap property at that node.</div>
+      </div>
+
+      <h3 class="section-h">Heap in Array Form</h3>
+      <p class="body">The beauty of a heap: no pointers needed! The tree structure is entirely encoded by index arithmetic.</p>
+
+      <div class="array-display" id="heapArray1"></div>
+      <p style="font-size:12px; color:var(--text3); margin-bottom:20px;">Index 0 is unused (1-indexed). Parent(i) = ⌊i/2⌋, Left(i) = 2i, Right(i) = 2i+1</p>
+
+      <div class="lesson-nav">
+        <button class="btn" onclick="prevSection()">← Binary Trees</button>
+        <button class="btn btn-primary" onclick="nextSection()">Insert & Heapify-Up →</button>
+      </div>
+    </div>
+
+    <!-- ===== SECTION 2: Insert ===== -->
+    <div class="section" id="sec2">
+      <div class="lesson-intro">
+        <h3>Inserting into a Max-Heap (Heapify-Up)</h3>
+        <p>Insertion adds the new key at the end of the array, then <strong>bubbles it up</strong> by swapping with its parent until the heap property is restored.</p>
+      </div>
+
+      <h3 class="section-h">The Algorithm</h3>
+      <div class="algo-box">
+        <span class="fn">MaxHeapInsert</span>(A[], size, K)<br>
+        &nbsp;&nbsp;<span class="num">1</span>: size ← size + <span class="num">1</span><br>
+        &nbsp;&nbsp;<span class="num">2</span>: i ← size<br>
+        &nbsp;&nbsp;<span class="num">3</span>: A[i] ← K &nbsp;&nbsp;<span class="cm">// Place at end</span><br>
+        &nbsp;&nbsp;<span class="num">4</span>: <span class="kw">while</span> (i > 1) <span class="kw">and</span> (A[Parent(i)] &lt; A[i]) <span class="kw">do</span><br>
+        &nbsp;&nbsp;<span class="num">5</span>: &nbsp;&nbsp;&nbsp;&nbsp;Swap(A[i], A[Parent(i)]) &nbsp;&nbsp;<span class="cm">// Bubble up</span><br>
+        &nbsp;&nbsp;<span class="num">6</span>: &nbsp;&nbsp;&nbsp;&nbsp;i ← Parent(i)<br>
+        &nbsp;&nbsp;<span class="num">7</span>: <span class="kw">end while</span>
+      </div>
+
+      <div class="concept-grid">
+        <div class="concept-card">
+          <div class="label">Best Case</div>
+          <div class="value" style="color:var(--green);">O(1)</div>
+          <p>New key is ≤ its parent — no swaps needed</p>
+        </div>
+        <div class="concept-card">
+          <div class="label">Worst Case</div>
+          <div class="value" style="color:var(--coral);">O(log n)</div>
+          <p>New key bubbles all the way to root (height of tree)</p>
+        </div>
+      </div>
+
+      <h3 class="section-h">Interactive: Step Through an Insert</h3>
+      <div class="viz-container">
+        <div class="viz-header">
+          <h4>Max-Heap Insert Visualizer</h4>
+          <span class="tag tag-heap">Step-by-step</span>
+        </div>
+        <div class="viz-controls">
+          <input type="number" id="insertVal" value="55" min="1" max="99" placeholder="Value">
+          <button class="btn btn-primary" onclick="startInsert()">Insert</button>
+          <button class="btn" onclick="stepInsert()" id="stepBtn" disabled>Step ▶</button>
+          <button class="btn" onclick="resetHeap2()">Reset</button>
+        </div>
+        <div class="viz-canvas">
+          <canvas id="heapCanvas2" width="760" height="300"></canvas>
+        </div>
+        <div class="array-display" id="heapArray2" style="padding: 0 16px 12px;"></div>
+        <div class="log-area" id="heapLog2">Enter a value and click Insert to begin.</div>
+      </div>
+
+      <div class="lesson-nav">
+        <button class="btn" onclick="prevSection()">← Heap Definition</button>
+        <button class="btn btn-primary" onclick="nextSection()">Extract-Max →</button>
+      </div>
+    </div>
+
+    <!-- ===== SECTION 3: Extract Max ===== -->
+    <div class="section" id="sec3">
+      <div class="lesson-intro">
+        <h3>Extracting the Maximum (Heapify-Down)</h3>
+        <p>Extraction removes the root (maximum), replaces it with the last element, shrinks the heap, then <strong>sifts down</strong> to restore the heap property.</p>
+      </div>
+
+      <h3 class="section-h">Extract-Max Algorithm</h3>
+      <div class="algo-box">
+        <span class="fn">HeapExtractMax</span>(A[], size)<br>
+        &nbsp;&nbsp;<span class="num">1</span>: <span class="kw">if</span> size &lt; 1 <span class="kw">then</span> error "underflow"<br>
+        &nbsp;&nbsp;<span class="num">2</span>: maxKey ← A[<span class="num">1</span>] &nbsp;&nbsp;<span class="cm">// Save the max</span><br>
+        &nbsp;&nbsp;<span class="num">3</span>: A[<span class="num">1</span>] ← A[size] &nbsp;&nbsp;<span class="cm">// Move last to root</span><br>
+        &nbsp;&nbsp;<span class="num">4</span>: size ← size − <span class="num">1</span><br>
+        &nbsp;&nbsp;<span class="num">5</span>: <span class="fn">MaxHeapify</span>(A, size) &nbsp;&nbsp;<span class="cm">// Sift down</span><br>
+        &nbsp;&nbsp;<span class="num">6</span>: <span class="kw">return</span> maxKey
+      </div>
+
+      <h3 class="section-h">MaxHeapify (Sift Down)</h3>
+      <div class="algo-box">
+        <span class="fn">MaxHeapify</span>(A[], size)<br>
+        &nbsp;&nbsp;j ← <span class="num">1</span>; flagDone ← false<br>
+        &nbsp;&nbsp;<span class="kw">repeat</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;L ← Left(j); R ← Right(j)<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;largest ← j<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> L ≤ size <span class="kw">and</span> A[L] > A[largest] <span class="kw">then</span> largest ← L<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> R ≤ size <span class="kw">and</span> A[R] > A[largest] <span class="kw">then</span> largest ← R<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> j ≠ largest <span class="kw">then</span> Swap(A[j], A[largest]); j ← largest<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">else</span> flagDone ← true<br>
+        &nbsp;&nbsp;<span class="kw">until</span> flagDone = true
+      </div>
+
+      <div class="concept-grid">
+        <div class="concept-card">
+          <div class="label">Worst Case (both)</div>
+          <div class="value" style="color:var(--coral);">O(log n)</div>
+          <p>Sift down travels entire height of tree</p>
+        </div>
+        <div class="concept-card">
+          <div class="label">Key Insight</div>
+          <p>Largest among {parent, left, right} wins. Always swap downward to maintain max-heap.</p>
+        </div>
+      </div>
+
+      <h3 class="section-h">Interactive: Extract Max Step-by-Step</h3>
+      <div class="viz-container">
+        <div class="viz-header">
+          <h4>Extract Max Visualizer</h4>
+          <span class="tag tag-heap">Step-by-step</span>
+        </div>
+        <div class="viz-controls">
+          <button class="btn btn-primary" onclick="startExtract()">Extract Max</button>
+          <button class="btn" onclick="stepExtract()" id="stepExtBtn" disabled>Step ▶</button>
+          <button class="btn" onclick="resetHeap3()">Reset Heap</button>
+        </div>
+        <div class="viz-canvas">
+          <canvas id="heapCanvas3" width="760" height="300"></canvas>
+        </div>
+        <div class="array-display" id="heapArray3" style="padding: 0 16px 12px;"></div>
+        <div class="log-area" id="heapLog3">Click "Extract Max" to begin removing the root.</div>
+      </div>
+
+      <div class="lesson-nav">
+        <button class="btn" onclick="prevSection()">← Insert</button>
+        <button class="btn btn-primary" onclick="nextSection()">Heap Sort →</button>
+      </div>
+    </div>
+
+    <!-- ===== SECTION 4: Heap Sort & Priority Queues ===== -->
+    <div class="section" id="sec4">
+      <div class="lesson-intro">
+        <h3>Heap Sort & Priority Queues</h3>
+        <p>Two major applications of heaps: sorting in O(n log n) and implementing a priority queue efficiently.</p>
+      </div>
+
+      <h3 class="section-h">HeapSort</h3>
+      <div class="algo-box">
+        <span class="fn">HeapSort</span>(B[], n)<br>
+        &nbsp;&nbsp;<span class="cm">// Phase 1: Build heap by inserting all elements</span><br>
+        &nbsp;&nbsp;size ← <span class="num">0</span><br>
+        &nbsp;&nbsp;<span class="kw">for</span> i ← <span class="num">1</span> to n <span class="kw">do</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="fn">MaxHeapInsert</span>(A, size, B[i])<br>
+        &nbsp;&nbsp;<span class="kw">end for</span><br>
+        &nbsp;&nbsp;<span class="cm">// Phase 2: Extract max n times → sorted order</span><br>
+        &nbsp;&nbsp;<span class="kw">for</span> i ← n downto <span class="num">1</span> <span class="kw">do</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;B[i] ← <span class="fn">HeapExtractMax</span>(A, size)<br>
+        &nbsp;&nbsp;<span class="kw">end for</span>
+      </div>
+
+      <div class="info-box">
+        <strong>Complexity:</strong> Phase 1 is O(n log n), Phase 2 is O(n log n). Total: <strong>O(n log n) worst case</strong>.
+      </div>
+
+      <h3 class="section-h">Priority Queue Comparison (Exam Favorite!)</h3>
+      <p class="body">The OSU slides give this table explicitly — know it cold:</p>
+
+      <table class="complexity-table">
+        <thead>
+          <tr>
+            <th>Operation</th>
+            <th>Heap (Binary)</th>
+            <th>Unsorted Array</th>
+            <th>Sorted Array</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Insert</strong></td>
+            <td class="ok">O(log n)</td>
+            <td class="good">O(1)</td>
+            <td class="bad">O(n)</td>
+          </tr>
+          <tr>
+            <td><strong>Extract-Max</strong></td>
+            <td class="ok">O(log n)</td>
+            <td class="bad">O(n)</td>
+            <td class="good">O(1)</td>
+          </tr>
+          <tr>
+            <td><strong>Sort (via PQ)</strong></td>
+            <td class="ok">O(n log n)</td>
+            <td class="bad">O(n²)</td>
+            <td class="bad">O(n²)</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="warn-box">
+        <strong>Key Insight:</strong> The heap wins because BOTH insert and extract are O(log n). Arrays give O(1) for one but O(n) for the other — making sorting O(n²). The heap's balance is what makes it powerful.
+      </div>
+
+      <h3 class="section-h">Heap Increase-Key</h3>
+      <div class="algo-box">
+        <span class="fn">MaxHeapIncreaseKey</span>(A[], size, i, K)<br>
+        &nbsp;&nbsp;<span class="kw">if</span> K &lt; A[i] <span class="kw">then</span> error "new key &lt; current"<br>
+        &nbsp;&nbsp;A[i] ← K<br>
+        &nbsp;&nbsp;<span class="kw">while</span> (i > 1) <span class="kw">and</span> (A[Parent(i)] &lt; A[i]) <span class="kw">do</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;Swap(A[i], A[Parent(i)]); i ← Parent(i)<br>
+        &nbsp;&nbsp;<span class="kw">end while</span>
+      </div>
+
+      <div class="lesson-nav">
+        <button class="btn" onclick="prevSection()">← Extract-Max</button>
+        <button class="btn btn-primary" onclick="nextSection()">Hash Tables →</button>
+      </div>
+    </div>
+
+    <!-- ===== SECTION 5: Hash Tables ===== -->
+    <div class="section" id="sec5">
+      <div class="lesson-intro">
+        <h3>Direct-Address Tables & Hash Tables</h3>
+        <p>Hash tables solve the problem of storing data when we can't afford an array the size of the entire key universe.</p>
+      </div>
+
+      <div class="two-col">
+        <div class="concept-card" style="border-left: 3px solid var(--blue);">
+          <div class="label" style="color:var(--blue);">Direct Address</div>
+          <p>Element with key k → slot k.<br>Fast, but needs array of size |U| (universe). Wasteful if few keys used.</p>
+        </div>
+        <div class="concept-card" style="border-left: 3px solid var(--teal);">
+          <div class="label" style="color:var(--teal);">Hash Table</div>
+          <p>Element with key k → slot <strong>h(k)</strong>.<br>Table size m ≪ |U|. Space-efficient!</p>
+        </div>
+      </div>
+
+      <h3 class="section-h">The Hash Function</h3>
+      <p class="body">A hash function maps the universe U of keys into slots {0, 1, ..., m−1}:</p>
+      <div class="info-box">
+        <strong>h : U → {0, 1, ..., m − 1}</strong><br>
+        Key k <em>hashes to slot</em> h(k). The value h(k) is the <em>hash value</em> of k.
+      </div>
+
+      <h3 class="section-h">Interactive: See Division Hashing in Action</h3>
+      <div class="viz-container">
+        <div class="viz-header">
+          <h4>h(k) = k mod m — Division Hash</h4>
+          <span class="tag tag-hash">Interactive</span>
+        </div>
+        <div class="viz-controls">
+          <label style="font-size:13px; color:var(--text2);">Table size m:</label>
+          <input type="number" id="hashM" value="7" min="3" max="13" style="width:60px;">
+          <label style="font-size:13px; color:var(--text2);">Key k:</label>
+          <input type="number" id="hashK" value="22" min="0" max="999">
+          <button class="btn btn-primary" onclick="computeHash()">Hash it!</button>
+          <button class="btn" onclick="clearHash()">Clear</button>
+        </div>
+        <div class="hash-table-viz" id="hashTableViz5"></div>
+        <div class="log-area" id="hashLog5">Enter a key and table size, then click "Hash it!"</div>
+      </div>
+
+      <div class="lesson-nav">
+        <button class="btn" onclick="prevSection()">← Heap Sort</button>
+        <button class="btn btn-primary" onclick="nextSection()">Chaining →</button>
+      </div>
+    </div>
+
+    <!-- ===== SECTION 6: Chaining ===== -->
+    <div class="section" id="sec6">
+      <div class="lesson-intro">
+        <h3>Collision Resolution: Chaining</h3>
+        <p>A <strong>collision</strong> occurs when two keys hash to the same slot. Chaining resolves this by storing all colliding elements in a linked list at each slot.</p>
+      </div>
+
+      <h3 class="section-h">How Chaining Works</h3>
+      <p class="body">Each slot j holds a pointer to a linked list of all keys that hash to j. If no keys hash to j, slot j = NIL.</p>
+
+      <div class="algo-box">
+        <span class="fn">INSERT</span>(T, x): insert x at head of T[h(x.key)] &nbsp;<span class="cm">// O(1)</span><br>
+        <span class="fn">SEARCH</span>(T, k): search list T[h(k)] for key k &nbsp;<span class="cm">// O(list length)</span><br>
+        <span class="fn">DELETE</span>(T, x): delete x from list T[h(x.key)] &nbsp;<span class="cm">// O(1) with doubly linked</span>
+      </div>
+
+      <h3 class="section-h">Performance Analysis</h3>
+      <p class="body">Let α = n/m be the <strong>load factor</strong> (elements per slot on average).</p>
+
+      <table class="complexity-table">
+        <thead>
+          <tr><th>Case</th><th>Search Time</th><th>When?</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Worst Case</strong></td>
+            <td class="bad">O(n)</td>
+            <td>All n keys hash to same slot</td>
+          </tr>
+          <tr>
+            <td><strong>Expected (avg)</strong></td>
+            <td class="ok">Θ(α + 1)</td>
+            <td>Uniform hash assumption</td>
+          </tr>
+          <tr>
+            <td><strong>Practical (α = O(1))</strong></td>
+            <td class="good">O(1)</td>
+            <td>m proportional to n</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="info-box">
+        <strong>Load Factor α = n/m:</strong> If m grows with n (keep α ≤ 1), all operations average O(1). This is the magic of hash tables!
+      </div>
+
+      <h3 class="section-h">Interactive: Chaining Visualizer</h3>
+      <div class="viz-container">
+        <div class="viz-header">
+          <h4>Chaining Hash Table (m = 7, h(k) = k mod 7)</h4>
+          <span class="tag tag-hash">Interactive</span>
+        </div>
+        <div class="viz-controls">
+          <input type="number" id="chainKey" value="15" min="0" max="99" placeholder="Key">
+          <button class="btn btn-primary" onclick="chainInsert()">Insert</button>
+          <button class="btn btn-danger" onclick="chainClear()">Clear</button>
+        </div>
+        <div id="chainViz" style="padding:16px 20px; min-height:140px;"></div>
+        <div class="log-area" id="chainLog">Insert keys to see chaining in action. Try inserting 5, 12, 19, 26 (all hash to same slot!).</div>
+      </div>
+
+      <div class="lesson-nav">
+        <button class="btn" onclick="prevSection()">← Direct Address</button>
+        <button class="btn btn-primary" onclick="nextSection()">Hash Functions →</button>
+      </div>
+    </div>
+
+    <!-- ===== SECTION 7: Hash Functions ===== -->
+    <div class="section" id="sec7">
+      <div class="lesson-intro">
+        <h3>Hash Functions — Three Types</h3>
+        <p>The OSU slides cover three specific hash functions. Know each formula and its properties.</p>
+      </div>
+
+      <div class="concept-card" style="margin-bottom:16px; border-left: 3px solid var(--purple);">
+        <div class="label" style="color:var(--purple);">Properties of a GOOD Hash Function</div>
+        <p><strong>1. Uniformity</strong> — each key has equal probability of hashing to any slot<br>
+        <strong>2. Determinism</strong> — same key always → same hash value<br>
+        <strong>3. Minimal collisions</strong> — minimizes keys mapping to same slot</p>
+      </div>
+
+      <h3 class="section-h">1. Division Hashing</h3>
+      <div class="algo-box">
+        h(key) = key <span class="kw">mod</span> m &nbsp;&nbsp;<span class="cm">// or mod p (prime)</span>
+      </div>
+      <p class="body">Simple and fast. Works well if m is prime and not close to a power of 2. Poor if many keys share the same remainder mod m.</p>
+
+      <h3 class="section-h">2. Multiplicative Hashing</h3>
+      <div class="algo-box">
+        h(k) = ⌊m × frac(kσ)⌋ &nbsp;&nbsp;<span class="cm">// σ ∈ [0.5, 1]</span>
+      </div>
+      <p class="body"><code>frac(x)</code> is the fractional part of x. Multiply key by constant σ, extract the fraction, scale by m. More robust than division hashing.</p>
+
+      <h3 class="section-h">3. Universal Hashing</h3>
+      <div class="algo-box">
+        h(k) = ((ak + b) <span class="kw">mod</span> p) <span class="kw">mod</span> m<br>
+        <span class="cm">// a,b random in {1,...,p-1}, p prime, p ≫ m</span>
+      </div>
+      <div class="info-box">
+        <strong>Why Universal?</strong> Randomly choosing a, b makes it hard for an adversary to pick keys that all collide. Each key has equal probability 1/m of hashing to any slot, regardless of key distribution.
+      </div>
+
+      <h3 class="section-h">Interactive: Compare Hash Functions</h3>
+      <div class="viz-container">
+        <div class="viz-header"><h4>Compare Division vs Multiplicative Hashing</h4></div>
+        <div class="viz-controls">
+          <label style="font-size:13px; color:var(--text2);">Key:</label>
+          <input type="number" id="hfKey" value="42" min="0" max="9999">
+          <label style="font-size:13px; color:var(--text2);">m:</label>
+          <input type="number" id="hfM" value="11" min="3" max="20">
+          <button class="btn btn-primary" onclick="compareHF()">Compare</button>
+        </div>
+        <div style="padding:16px 20px;" id="hfResult">
+          <p style="font-size:13px; color:var(--text3);">Enter values and click Compare.</p>
+        </div>
+      </div>
+
+      <div class="lesson-nav">
+        <button class="btn" onclick="prevSection()">← Chaining</button>
+        <button class="btn btn-primary" onclick="nextSection()">Open Addressing →</button>
+      </div>
+    </div>
+
+    <!-- ===== SECTION 8: Open Addressing ===== -->
+    <div class="section" id="sec8">
+      <div class="lesson-intro">
+        <h3>Open Addressing — No Linked Lists!</h3>
+        <p>In open addressing, all elements live inside the table itself. When a collision occurs, we <strong>probe</strong> for the next empty slot.</p>
+      </div>
+
+      <div class="two-col">
+        <div class="concept-card" style="border-left:3px solid var(--coral);">
+          <div class="label" style="color:var(--coral);">Chaining</div>
+          <p>Elements stored in linked lists <em>outside</em> the table. Table can store > m elements (α > 1 OK).</p>
+        </div>
+        <div class="concept-card" style="border-left:3px solid var(--teal);">
+          <div class="label" style="color:var(--teal);">Open Addressing</div>
+          <p>All elements stored <em>inside</em> the table. Table fills up — requires α < 1 always.</p>
+        </div>
+      </div>
+
+      <h3 class="section-h">The Probe Sequence</h3>
+      <p class="body">We extend h to include a probe number: <span class="math">h : U × {0,...,m−1} → {0,...,m−1}</span></p>
+      <p class="body">For each key, probe sequence <code>(h(k,0), h(k,1), ..., h(k,m−1))</code> must cover all slots.</p>
+
+      <h3 class="section-h">Three Probing Strategies</h3>
+      <div class="algo-box">
+        <span class="cm">Linear probing:</span> &nbsp;&nbsp; h(k,j) = (h(k) + j) <span class="kw">mod</span> m<br>
+        <span class="cm">Quadratic probing:</span> h(k,j) = (h(k) + c₁j + c₂j²) <span class="kw">mod</span> m<br>
+        <span class="cm">Double hashing:</span> &nbsp; h(k,j) = (h₁(k) + j·h₂(k)) <span class="kw">mod</span> m
+      </div>
+
+      <h3 class="section-h">Insert Algorithm</h3>
+      <div class="algo-box">
+        <span class="fn">HashTable.Insert</span>(K)<br>
+        &nbsp;&nbsp;i ← <span class="num">0</span><br>
+        &nbsp;&nbsp;<span class="kw">repeat</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;j ← h(k, i)<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> T[j] = Null <span class="kw">then</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;T[j] ← k; <span class="kw">return</span> j<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">else</span> i ← i + <span class="num">1</span><br>
+        &nbsp;&nbsp;<span class="kw">until</span> i = m &nbsp;<span class="cm">// ERROR: overflow</span>
+      </div>
+
+      <h3 class="section-h">Performance</h3>
+      <div class="info-box">
+        <strong>Expected runtime:</strong> <span class="math">O(1 / (1 − α))</span> where α = n/m<br>
+        If n ≤ m/2 (α ≤ 0.5), then expected time → <strong>O(1)</strong>. Keep your table at most half-full!
+      </div>
+
+      <h3 class="section-h">Interactive: Linear Probing Visualizer</h3>
+      <div class="viz-container">
+        <div class="viz-header">
+          <h4>Open Addressing with Linear Probing (m = 11)</h4>
+          <span class="tag tag-hash">Interactive</span>
+        </div>
+        <div class="viz-controls">
+          <input type="number" id="oaKey" value="20" min="0" max="99">
+          <button class="btn btn-primary" onclick="oaInsert()">Insert (linear probe)</button>
+          <button class="btn" onclick="oaClear()">Clear</button>
+        </div>
+        <div id="oaViz" style="padding:16px 20px; display:flex; gap:0; flex-wrap:wrap;"></div>
+        <div class="log-area" id="oaLog">Insert keys to see linear probing. Try 0, 11, 22 — all hash to slot 0!</div>
+      </div>
+
+      <div class="lesson-nav">
+        <button class="btn" onclick="prevSection()">← Hash Functions</button>
+        <button class="btn btn-primary" onclick="nextSection()">Complexity Summary →</button>
+      </div>
+    </div>
+
+    <!-- ===== SECTION 9: Complexity Summary ===== -->
+    <div class="section" id="sec9">
+      <div class="lesson-intro">
+        <h3>Master Summary — Everything Tested</h3>
+        <p>This section consolidates all the complexity results from both lectures. Study this before the exam.</p>
+      </div>
+
+      <h3 class="section-h">Heap Operations</h3>
+      <table class="complexity-table">
+        <thead><tr><th>Operation</th><th>Best</th><th>Worst</th><th>Why?</th></tr></thead>
+        <tbody>
+          <tr><td>MaxHeapInsert</td><td class="good">O(1)</td><td class="ok">O(log n)</td><td>Bubble up ≤ tree height</td></tr>
+          <tr><td>HeapExtractMax</td><td>—</td><td class="ok">O(log n)</td><td>Sift down ≤ tree height</td></tr>
+          <tr><td>HeapIncreaseKey</td><td>—</td><td class="ok">O(log n)</td><td>Bubble up ≤ tree height</td></tr>
+          <tr><td>HeapSort</td><td>—</td><td class="ok">O(n log n)</td><td>n insertions + n extractions</td></tr>
+        </tbody>
+      </table>
+
+      <h3 class="section-h">Priority Queue Implementation Comparison</h3>
+      <table class="complexity-table">
+        <thead><tr><th>Operation</th><th>Heap</th><th>Unsorted Array</th><th>Sorted Array</th></tr></thead>
+        <tbody>
+          <tr><td>Insert</td><td class="ok">O(log n)</td><td class="good">O(1)</td><td class="bad">O(n)</td></tr>
+          <tr><td>ExtractMax</td><td class="ok">O(log n)</td><td class="bad">O(n)</td><td class="good">O(1)</td></tr>
+          <tr><td>Sort</td><td class="ok">O(n log n)</td><td class="bad">O(n²)</td><td class="bad">O(n²)</td></tr>
+        </tbody>
+      </table>
+
+      <h3 class="section-h">Hash Table Operations</h3>
+      <table class="complexity-table">
+        <thead><tr><th>Operation</th><th>Expected</th><th>Worst</th><th>Condition</th></tr></thead>
+        <tbody>
+          <tr><td>Insert (Chaining)</td><td class="good">O(1)</td><td class="bad">O(n)</td><td>Uniform hash, α = O(1)</td></tr>
+          <tr><td>Search (Chaining)</td><td class="ok">Θ(α + 1)</td><td class="bad">O(n)</td><td>All keys same slot</td></tr>
+          <tr><td>Delete (Chaining)</td><td class="good">O(1)</td><td class="bad">O(n)</td><td>With doubly linked list</td></tr>
+          <tr><td>Insert (Open Addr)</td><td class="ok">O(1/(1−α))</td><td class="bad">O(n)</td><td>α &lt; 1 required</td></tr>
+          <tr><td>Practical all ops</td><td class="good">O(1)</td><td>—</td><td>α ≤ 0.5 for open addr</td></tr>
+        </tbody>
+      </table>
+
+      <h3 class="section-h">Key Formulas to Know</h3>
+      <div class="concept-grid">
+        <div class="concept-card">
+          <div class="label">Complete tree nodes</div>
+          <div class="value" style="font-size:16px;">2^(h+1) − 1</div>
+          <p>Height h tree has this many nodes</p>
+        </div>
+        <div class="concept-card">
+          <div class="label">Tree height</div>
+          <div class="value" style="font-size:16px;">⌊log₂ n⌋</div>
+          <p>n-node heap has this height</p>
+        </div>
+        <div class="concept-card">
+          <div class="label">Load factor</div>
+          <div class="value" style="font-size:16px;">α = n/m</div>
+          <p>n elements, m slots</p>
+        </div>
+        <div class="concept-card">
+          <div class="label">Nearly complete</div>
+          <div class="value" style="font-size:14px;">2^h − 1 ≤ n ≤ 2^(h+1) − 1</div>
+          <p>Node count range for height h</p>
+        </div>
+      </div>
+
+      <div class="lesson-nav">
+        <button class="btn" onclick="prevSection()">← Open Addressing</button>
+        <button class="btn btn-primary" onclick="nextSection()">Take Quiz →</button>
+      </div>
+    </div>
+
+    <!-- ===== SECTION 10: QUIZ ===== -->
+    <div class="section" id="sec10">
+      <div id="quizIntro">
+        <div class="lesson-intro">
+          <h3>Practice Quiz — 15 Questions</h3>
+          <p>Questions drawn directly from the OSU lecture slides. Cover heaps, hash tables, and everything in between. Take your time!</p>
+        </div>
+        <button class="btn btn-primary" style="margin-bottom:24px;" onclick="startQuiz()">Start Quiz</button>
+      </div>
+
+      <div id="quizBody" style="display:none;">
+        <div id="quizQuestions"></div>
+        <button class="btn btn-primary" onclick="submitQuiz()" id="submitBtn">Submit Quiz</button>
+      </div>
+
+      <div id="quizResults" style="display:none;">
+        <div class="score-card">
+          <div class="score-big" id="scoreNum"></div>
+          <div class="score-sub" id="scoreSub"></div>
+        </div>
+        <div id="quizReview"></div>
+        <button class="btn btn-primary" onclick="retakeQuiz()" style="margin-top:16px;">Retake Quiz</button>
+      </div>
+    </div>
+
+  </div><!-- content-area -->
+</div><!-- main -->
+</div><!-- app -->
+
+<script>
+// ============================================================
+//  STATE
+// ============================================================
+let currentSection = 0;
+const totalSections = 11;
+const sectionDone = new Array(totalSections).fill(false);
+
+const SECTION_META = [
+  { title: 'Binary Trees Basics', tag: 'Heaps', tagClass: 'tag-heap' },
+  { title: 'Heap Definition', tag: 'Heaps', tagClass: 'tag-heap' },
+  { title: 'Insert & Heapify-Up', tag: 'Heaps', tagClass: 'tag-heap' },
+  { title: 'Extract-Max & Heapify-Down', tag: 'Heaps', tagClass: 'tag-heap' },
+  { title: 'Heap Sort & Priority Queues', tag: 'Heaps', tagClass: 'tag-heap' },
+  { title: 'Direct Address & Hashing', tag: 'Hash Tables', tagClass: 'tag-hash' },
+  { title: 'Chaining & Analysis', tag: 'Hash Tables', tagClass: 'tag-hash' },
+  { title: 'Hash Functions', tag: 'Hash Tables', tagClass: 'tag-hash' },
+  { title: 'Open Addressing', tag: 'Hash Tables', tagClass: 'tag-hash' },
+  { title: 'Complexity Summary', tag: 'Both', tagClass: 'tag-hash' },
+  { title: 'Practice Quiz', tag: 'Quiz', tagClass: 'tag-quiz' },
+];
+
+// ============================================================
+//  NAVIGATION
+// ============================================================
+function goTo(idx) {
+  document.getElementById('sec' + currentSection).classList.remove('active');
+  document.getElementById('nav' + currentSection).classList.remove('active');
+  sectionDone[currentSection] = true;
+  document.getElementById('nav' + currentSection).classList.add('done');
+
+  currentSection = idx;
+  document.getElementById('sec' + idx).classList.add('active');
+  document.getElementById('nav' + idx).classList.add('active');
+  document.getElementById('nav' + idx).classList.remove('done');
+
+  const meta = SECTION_META[idx];
+  document.getElementById('topTitle').textContent = meta.title;
+  const tag = document.getElementById('topTag');
+  tag.textContent = meta.tag;
+  tag.className = 'tag ' + meta.tagClass;
+
+  updateProgress();
+  initSection(idx);
+  document.querySelector('.main').scrollTo(0, 0);
+}
+
+function nextSection() { if (currentSection < totalSections - 1) goTo(currentSection + 1); }
+function prevSection() { if (currentSection > 0) goTo(currentSection - 1); }
+
+function updateProgress() {
+  const done = sectionDone.filter(Boolean).length;
+  document.getElementById('progressBar').style.width = (done / totalSections * 100) + '%';
+  document.getElementById('progressLabel').textContent = done + ' / ' + totalSections + ' sections done';
+}
+
+// ============================================================
+//  CANVAS DRAWING UTILITIES
+// ============================================================
+function getColors() {
+  const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  return {
+    bg: dark ? '#242422' : '#ffffff',
+    bg2: dark ? '#2e2e2b' : '#f0ede8',
+    text: dark ? '#e8e6df' : '#1a1a18',
+    text2: dark ? '#a8a89e' : '#5a5a56',
+    border: dark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)',
+    purple: '#534AB7',
+    purpleLight: dark ? '#2a2650' : '#EEEDFE',
+    teal: '#0F6E56',
+    tealLight: dark ? '#0a2e24' : '#E1F5EE',
+    amber: '#BA7517',
+    amberLight: dark ? '#2e2010' : '#FAEEDA',
+    coral: '#993C1D',
+    coralLight: dark ? '#2e1810' : '#FAECE7',
+    green: '#3B6D11',
+    greenLight: dark ? '#0c2004' : '#EAF3DE',
+    red: '#A32D2D',
+    redLight: dark ? '#2e1010' : '#FCEBEB',
+  };
+}
+
+function drawNode(ctx, x, y, r, val, highlight, c) {
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fillStyle = highlight === 'insert' ? c.tealLight :
+                  highlight === 'swap' ? c.amberLight :
+                  highlight === 'extract' ? c.coralLight :
+                  highlight === 'selected' ? c.purpleLight :
+                  c.bg2;
+  ctx.fill();
+  ctx.strokeStyle = highlight === 'insert' ? c.teal :
+                    highlight === 'swap' ? c.amber :
+                    highlight === 'extract' ? c.coral :
+                    highlight === 'selected' ? c.purple :
+                    c.border;
+  ctx.lineWidth = highlight ? 2 : 1;
+  ctx.stroke();
+  ctx.fillStyle = highlight === 'selected' ? c.purple : c.text;
+  ctx.font = `600 14px monospace`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(val, x, y);
+}
+
+function drawEdge(ctx, x1, y1, x2, y2, c) {
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.strokeStyle = c.border;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+}
+
+// Compute positions for a heap of size n in a canvas of given width
+function heapPositions(n, canvasW, canvasH) {
+  const positions = [];
+  const r = 20;
+  const levelH = (canvasH - 40) / Math.ceil(Math.log2(n + 1));
+  for (let i = 1; i <= n; i++) {
+    const level = Math.floor(Math.log2(i));
+    const posInLevel = i - Math.pow(2, level);
+    const nodesInLevel = Math.pow(2, level);
+    const segW = canvasW / nodesInLevel;
+    const x = segW * posInLevel + segW / 2;
+    const y = 36 + level * 70;
+    positions.push({ x, y, r });
+  }
+  return positions;
+}
+
+function drawHeap(canvasId, heap, highlights, clickHandler) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const c = getColors();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const n = heap.length - 1;
+  if (n === 0) return;
+
+  const positions = heapPositions(n, canvas.width, canvas.height);
+
+  // Draw edges
+  for (let i = 2; i <= n; i++) {
+    const p = positions[i - 1];
+    const par = positions[Math.floor(i / 2) - 1];
+    drawEdge(ctx, par.x, par.y, p.x, p.y, c);
+  }
+
+  // Draw nodes
+  for (let i = 1; i <= n; i++) {
+    const p = positions[i - 1];
+    const hl = highlights && highlights[i] ? highlights[i] : null;
+    drawNode(ctx, p.x, p.y, p.r, heap[i], hl, c);
+    // Index label
+    ctx.fillStyle = c.text2;
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(i, p.x, p.y + 32);
+  }
+
+  // Attach click handler
+  if (clickHandler) {
+    canvas.onclick = (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
+      const my = (e.clientY - rect.top) * (canvas.height / rect.height);
+      for (let i = 1; i <= n; i++) {
+        const p = positions[i - 1];
+        if (Math.hypot(mx - p.x, my - p.y) <= p.r) {
+          clickHandler(i);
+          break;
+        }
+      }
+    };
+  }
+}
+
+function renderArrayDisplay(containerId, heap, highlights) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const n = heap.length - 1;
+  let html = '';
+  for (let i = 0; i <= n; i++) {
+    let cls = 'array-cell';
+    if (highlights && highlights[i] === 'insert') cls += ' highlight-insert';
+    else if (highlights && highlights[i] === 'swap') cls += ' highlight-swap';
+    else if (highlights && highlights[i] === 'extract') cls += ' highlight-extract';
+    const val = i === 0 ? '—' : heap[i];
+    const color = i === 0 ? 'color:var(--text3)' : '';
+    html += `<div class="${cls}"><span class="cell-val" style="${color}">${val}</span><span class="cell-idx">${i}</span></div>`;
+  }
+  el.innerHTML = html;
+}
+
+// ============================================================
+//  SECTION 0: Binary Tree Canvas
+// ============================================================
+const tree0 = [null, 1, 2, 3, 4, 5, 6]; // 1-indexed, 6 nodes
+function initSection0() {
+  drawHeap('treeCanvas0', tree0, {}, (i) => {
+    const parent = i > 1 ? Math.floor(i / 2) : 'none (root)';
+    const left = 2 * i <= 6 ? 2 * i : 'none';
+    const right = 2 * i + 1 <= 6 ? 2 * i + 1 : 'none';
+    document.getElementById('treeLog0').textContent =
+      `Node ${i}: index=${i}, parent at index ${parent}, left at ${left}, right at ${right}`;
+    const hl = {};
+    hl[i] = 'selected';
+    if (typeof parent === 'number') hl[parent] = 'insert';
+    if (typeof left === 'number') hl[left] = 'swap';
+    if (typeof right === 'number') hl[right] = 'swap';
+    drawHeap('treeCanvas0', tree0, hl);
+  });
+}
+
+// ============================================================
+//  SECTION 1: Heap Definition
+// ============================================================
+const heap1 = [null, 48, 42, 39, 17, 31, 34, 23, 12, 8, 20, 14, 9];
+function initSection1() {
+  drawHeap('heapCanvas1', heap1, {}, (i) => {
+    const val = heap1[i];
+    const parent = i > 1 ? heap1[Math.floor(i / 2)] : null;
+    const left = 2 * i <= heap1.length - 1 ? heap1[2 * i] : null;
+    const right = 2 * i + 1 <= heap1.length - 1 ? heap1[2 * i + 1] : null;
+    let ok = true;
+    let msg = `Node ${i} (val=${val}): `;
+    if (parent !== null) { msg += `parent=${parent} ${parent >= val ? '✓' : '✗'}. `; if (parent < val) ok = false; }
+    if (left !== null) { msg += `left=${left} ${val >= left ? '✓' : '✗'}. `; if (val < left) ok = false; }
+    if (right !== null) { msg += `right=${right} ${val >= right ? '✓' : '✗'}. `; if (val < right) ok = false; }
+    msg += ok ? ' HEAP PROPERTY HOLDS ✓' : ' VIOLATION DETECTED ✗';
+    document.getElementById('heapLog1').textContent = msg;
+    const hl = {};
+    hl[i] = 'selected';
+    drawHeap('heapCanvas1', heap1, hl);
+  });
+  renderArrayDisplay('heapArray1', heap1, {});
+}
+
+// ============================================================
+//  SECTION 2: Insert
+// ============================================================
+let heap2 = [null, 48, 42, 39, 17, 31, 34, 23, 12, 8, 20];
+let insertSteps2 = [];
+let stepIdx2 = 0;
+
+function resetHeap2() {
+  heap2 = [null, 48, 42, 39, 17, 31, 34, 23, 12, 8, 20];
+  insertSteps2 = [];
+  stepIdx2 = 0;
+  document.getElementById('stepBtn').disabled = true;
+  document.getElementById('heapLog2').textContent = 'Heap reset. Enter a value and click Insert.';
+  drawHeap('heapCanvas2', heap2, {});
+  renderArrayDisplay('heapArray2', heap2, {});
+}
+
+function startInsert() {
+  const val = parseInt(document.getElementById('insertVal').value);
+  if (isNaN(val)) return;
+  heap2 = [null, 48, 42, 39, 17, 31, 34, 23, 12, 8, 20];
+  // Build insert steps
+  insertSteps2 = [];
+  const h = [...heap2];
+  h.push(val);
+  let i = h.length - 1;
+  h[0] = null;
+  insertSteps2.push({ heap: [...h], hl: { [i]: 'insert' }, msg: `Step 0: Placed ${val} at index ${i} (end of array).` });
+  while (i > 1 && h[Math.floor(i / 2)] < h[i]) {
+    const p = Math.floor(i / 2);
+    const tmp = h[i]; h[i] = h[p]; h[p] = tmp;
+    insertSteps2.push({ heap: [...h], hl: { [i]: 'swap', [p]: 'swap' }, msg: `Swap: ${h[p]} (idx ${i}) ↔ ${h[i]} (idx ${p}). ${h[p]} > ${h[i]}, so move up.` });
+    i = p;
+    insertSteps2.push({ heap: [...h], hl: { [i]: 'insert' }, msg: `Now at index ${i}. Checking parent...` });
+  }
+  insertSteps2.push({ heap: [...h], hl: { [i]: 'selected' }, msg: `Done! ${val} settled at index ${i}. Heap property restored.` });
+  stepIdx2 = 0;
+  document.getElementById('stepBtn').disabled = false;
+  showInsertStep2();
+}
+
+function showInsertStep2() {
+  const s = insertSteps2[stepIdx2];
+  heap2 = s.heap;
+  drawHeap('heapCanvas2', heap2, s.hl);
+  renderArrayDisplay('heapArray2', heap2, s.hl);
+  document.getElementById('heapLog2').textContent = s.msg;
+}
+
+function stepInsert() {
+  if (stepIdx2 < insertSteps2.length - 1) {
+    stepIdx2++;
+    showInsertStep2();
+    if (stepIdx2 === insertSteps2.length - 1) {
+      document.getElementById('stepBtn').disabled = true;
+    }
+  }
+}
+
+function initSection2() {
+  resetHeap2();
+}
+
+// ============================================================
+//  SECTION 3: Extract Max
+// ============================================================
+let heap3 = [null, 48, 42, 39, 17, 31, 34, 23, 12, 8, 20];
+let extractSteps3 = [];
+let stepIdx3 = 0;
+
+function resetHeap3() {
+  heap3 = [null, 48, 42, 39, 17, 31, 34, 23, 12, 8, 20];
+  extractSteps3 = [];
+  stepIdx3 = 0;
+  document.getElementById('stepExtBtn').disabled = true;
+  document.getElementById('heapLog3').textContent = 'Heap reset. Click "Extract Max" to begin.';
+  drawHeap('heapCanvas3', heap3, {});
+  renderArrayDisplay('heapArray3', heap3, {});
+}
+
+function startExtract() {
+  heap3 = [null, 48, 42, 39, 17, 31, 34, 23, 12, 8, 20];
+  extractSteps3 = [];
+  const h = [...heap3];
+  const maxVal = h[1];
+  extractSteps3.push({ heap: [...h], hl: { 1: 'extract' }, msg: `Step 0: Root (max) = ${maxVal}. We will remove it.` });
+  const n = h.length - 1;
+  h[1] = h[n];
+  h.pop();
+  extractSteps3.push({ heap: [...h], hl: { 1: 'swap' }, msg: `Step 1: Move last element (${h[1]}) to root. Size shrinks to ${h.length - 1}.` });
+
+  // Heapify down
+  let j = 1;
+  while (true) {
+    const L = 2 * j, R = 2 * j + 1;
+    const size = h.length - 1;
+    let largest = j;
+    if (L <= size && h[L] > h[largest]) largest = L;
+    if (R <= size && h[R] > h[largest]) largest = R;
+    if (largest === j) {
+      extractSteps3.push({ heap: [...h], hl: { [j]: 'selected' }, msg: `Node ${h[j]} at index ${j} is ≥ both children. Done! Heap restored.` });
+      break;
+    }
+    const tmp = h[j]; h[j] = h[largest]; h[largest] = tmp;
+    extractSteps3.push({ heap: [...h], hl: { [j]: 'swap', [largest]: 'swap' }, msg: `Swap: ${h[j]} (idx ${largest}) ↔ ${h[largest]} (idx ${j}). Max child was ${h[j]}.` });
+    j = largest;
+    if (2 * j > h.length - 1) {
+      extractSteps3.push({ heap: [...h], hl: { [j]: 'selected' }, msg: `Reached a leaf at index ${j}. Heapify complete!` });
+      break;
+    }
+    extractSteps3.push({ heap: [...h], hl: { [j]: 'insert' }, msg: `Now at index ${j}, checking children...` });
+  }
+
+  stepIdx3 = 0;
+  document.getElementById('stepExtBtn').disabled = false;
+  showExtractStep3();
+}
+
+function showExtractStep3() {
+  const s = extractSteps3[stepIdx3];
+  heap3 = s.heap;
+  drawHeap('heapCanvas3', heap3, s.hl);
+  renderArrayDisplay('heapArray3', heap3, s.hl);
+  document.getElementById('heapLog3').textContent = s.msg;
+}
+
+function stepExtract() {
+  if (stepIdx3 < extractSteps3.length - 1) {
+    stepIdx3++;
+    showExtractStep3();
+    if (stepIdx3 === extractSteps3.length - 1) {
+      document.getElementById('stepExtBtn').disabled = true;
+    }
+  }
+}
+
+function initSection3() {
+  resetHeap3();
+}
+
+// ============================================================
+//  SECTION 5: Hash Table Viz
+// ============================================================
+let hashKeys5 = [];
+
+function initSection5() {
+  renderHashTable5([]);
+}
+
+function renderHashTable5(highlights) {
+  const m = parseInt(document.getElementById('hashM').value) || 7;
+  const slots = new Array(m).fill(null);
+  hashKeys5.forEach(k => { slots[k % m] = k; });
+  const viz = document.getElementById('hashTableViz5');
+  let html = '';
+  for (let i = 0; i < m; i++) {
+    const isHl = highlights && highlights.includes(i);
+    html += `<div class="hash-slot">
+      <div class="hash-slot-idx">${i}</div>
+      <div class="hash-slot-box ${slots[i] !== null ? 'filled' : ''} ${isHl ? 'highlight' : ''}">${slots[i] !== null ? slots[i] : ''}</div>
+    </div>`;
+  }
+  viz.innerHTML = html;
+}
+
+function computeHash() {
+  const k = parseInt(document.getElementById('hashK').value);
+  const m = parseInt(document.getElementById('hashM').value);
+  if (isNaN(k) || isNaN(m)) return;
+  const slot = k % m;
+  hashKeys5.push(k);
+  renderHashTable5([slot]);
+  document.getElementById('hashLog5').textContent =
+    `h(${k}) = ${k} mod ${m} = ${slot}. Key ${k} stored in slot ${slot}.`;
+}
+
+function clearHash() {
+  hashKeys5 = [];
+  renderHashTable5([]);
+  document.getElementById('hashLog5').textContent = 'Cleared.';
+}
+
+// ============================================================
+//  SECTION 6: Chaining
+// ============================================================
+let chainData = {}; // slot -> [keys]
+
+function initSection6() {
+  chainData = {};
+  renderChain();
+}
+
+function chainInsert() {
+  const k = parseInt(document.getElementById('chainKey').value);
+  if (isNaN(k)) return;
+  const slot = k % 7;
+  if (!chainData[slot]) chainData[slot] = [];
+  chainData[slot].unshift(k); // insert at head
+  renderChain(slot, k);
+  document.getElementById('chainLog').textContent =
+    `Inserted ${k}: h(${k}) = ${k} % 7 = ${slot}. Added to head of chain at slot ${slot}. Chain length: ${chainData[slot].length}`;
+}
+
+function chainClear() {
+  chainData = {};
+  renderChain();
+  document.getElementById('chainLog').textContent = 'Cleared. Insert keys to build the table.';
+}
+
+function renderChain(hlSlot, hlKey) {
+  const viz = document.getElementById('chainViz');
+  let html = '<div style="display:flex; gap:0;">';
+  for (let i = 0; i < 7; i++) {
+    const isHl = i === hlSlot;
+    html += `<div class="hash-slot">
+      <div class="hash-slot-idx">${i}</div>
+      <div class="hash-slot-box ${chainData[i] && chainData[i].length ? 'filled' : ''} ${isHl ? 'highlight' : ''}">${chainData[i] && chainData[i].length ? '→' : 'NIL'}</div>
+      <div class="chain-list">`;
+    if (chainData[i]) {
+      chainData[i].forEach((k, idx) => {
+        const isNew = k === hlKey && i === hlSlot && idx === 0;
+        html += `<div class="chain-node" style="${isNew ? 'border-color:var(--teal);background:var(--teal-light);color:var(--teal)' : ''}">${k}</div>`;
+      });
+    }
+    html += `</div></div>`;
+  }
+  html += '</div>';
+  viz.innerHTML = html;
+}
+
+// ============================================================
+//  SECTION 7: Hash Functions Compare
+// ============================================================
+function initSection7() {}
+
+function compareHF() {
+  const k = parseInt(document.getElementById('hfKey').value);
+  const m = parseInt(document.getElementById('hfM').value);
+  if (isNaN(k) || isNaN(m)) return;
+  const sigma = 0.6180339887;
+  const div = k % m;
+  const mult = Math.floor(m * ((k * sigma) % 1));
+  const a = 3, b = 7, p = 101;
+  const univ = ((a * k + b) % p) % m;
+  document.getElementById('hfResult').innerHTML = `
+    <div class="concept-grid">
+      <div class="concept-card" style="border-left:3px solid var(--purple);">
+        <div class="label">Division: k mod m</div>
+        <div class="value">${div}</div>
+        <p>${k} mod ${m} = ${div}</p>
+      </div>
+      <div class="concept-card" style="border-left:3px solid var(--teal);">
+        <div class="label">Multiplicative: ⌊m·frac(kσ)⌋</div>
+        <div class="value">${mult}</div>
+        <p>σ≈0.618, frac(${k}×σ)≈${((k * sigma) % 1).toFixed(4)}</p>
+      </div>
+      <div class="concept-card" style="border-left:3px solid var(--coral);">
+        <div class="label">Universal: ((ak+b) mod p) mod m</div>
+        <div class="value">${univ}</div>
+        <p>a=3, b=7, p=101: ((3×${k}+7) mod 101) mod ${m}</p>
+      </div>
+    </div>`;
+}
+
+// ============================================================
+//  SECTION 8: Open Addressing
+// ============================================================
+const OA_M = 11;
+let oaTable = new Array(OA_M).fill(null);
+
+function initSection8() {
+  oaTable = new Array(OA_M).fill(null);
+  renderOA([]);
+}
+
+function oaInsert() {
+  const k = parseInt(document.getElementById('oaKey').value);
+  if (isNaN(k)) return;
+  const probed = [];
+  let placed = false;
+  for (let j = 0; j < OA_M; j++) {
+    const slot = (k + j) % OA_M;
+    probed.push(slot);
+    if (oaTable[slot] === null) {
+      oaTable[slot] = k;
+      placed = true;
+      renderOA(probed, slot);
+      document.getElementById('oaLog').textContent =
+        `Inserted ${k}: h(${k},0)=${k%OA_M}. Probed slots: ${probed.join('→')}. Placed at slot ${slot} after ${probed.length} probe(s).`;
+      return;
+    }
+  }
+  if (!placed) {
+    document.getElementById('oaLog').textContent = `Table overflow! Cannot insert ${k} — all slots occupied.`;
+  }
+}
+
+function oaClear() {
+  oaTable = new Array(OA_M).fill(null);
+  renderOA([]);
+  document.getElementById('oaLog').textContent = 'Table cleared.';
+}
+
+function renderOA(probed, placed) {
+  const viz = document.getElementById('oaViz');
+  let html = '';
+  for (let i = 0; i < OA_M; i++) {
+    let cls = 'hash-slot';
+    let boxCls = 'hash-slot-box';
+    if (i === placed) boxCls += ' placed';
+    else if (probed && probed.includes(i) && oaTable[i] !== null) boxCls += ' probed';
+    else if (oaTable[i] !== null) boxCls += ' filled';
+    html += `<div class="${cls}">
+      <div class="hash-slot-idx">${i}</div>
+      <div class="${boxCls}">${oaTable[i] !== null ? oaTable[i] : ''}</div>
+    </div>`;
+  }
+  viz.innerHTML = html;
+}
+
+// ============================================================
+//  QUIZ
+// ============================================================
+const QUESTIONS = [
+  {
+    q: "What is the height of a complete binary tree with n nodes?",
+    opts: ["n − 1", "n/2", "⌊log₂ n⌋", "2^n"],
+    ans: 2, // index 2
+    exp: "A complete binary tree of height h has 2^(h+1) − 1 nodes. Solving for h: h = log₂(n+1) − 1 ≈ log₂ n. So height ≈ ⌊log₂ n⌋."
+  },
+  {
+    q: "In a 1-indexed heap array, what is the index of the RIGHT child of node i?",
+    opts: ["2i", "2i+1", "⌊i/2⌋", "i+1"],
+    ans: 1,
+    exp: "Right(i) = 2i+1. Left child is at 2i, and parent is at ⌊i/2⌋. These three formulas are fundamental to heap navigation."
+  },
+  {
+    q: "What is the WORST CASE time complexity of inserting into a max-heap?",
+    opts: ["O(1)", "O(log n)", "O(n)", "O(n log n)"],
+    ans: 1,
+    exp: "Worst case is O(log n) — the new element bubbles all the way from the leaf to the root, traveling the full height of the tree (≈ log n). Best case is O(1) when no swaps are needed."
+  },
+  {
+    q: "After HeapExtractMax, which element is placed at the root before heapify-down?",
+    opts: ["The second largest element", "A random element", "The last element in the array", "Index 2 element"],
+    ans: 2,
+    exp: "The LAST element in the heap array is moved to the root, then the size is decremented by 1. MaxHeapify (heapify-down) then restores the heap property."
+  },
+  {
+    q: "Which of the following arrays represents a valid MAX-HEAP?",
+    opts: ["[_, 10, 20, 15]", "[_, 20, 10, 15]", "[_, 20, 15, 10]", "Both B and C"],
+    ans: 3,
+    exp: "In a max-heap, each parent must be ≥ its children. [_,20,10,15]: node1=20 ≥ node2=10 ✓, node1=20 ≥ node3=15 ✓. [_,20,15,10]: node1=20 ≥ node2=15 ✓, node1=20 ≥ node3=10 ✓. Both are valid!"
+  },
+  {
+    q: "Using a heap to implement a priority queue, what is the time to sort n elements?",
+    opts: ["O(n)", "O(n log n)", "O(n²)", "O(log n)"],
+    ans: 1,
+    exp: "HeapSort: n insertions × O(log n) each + n extractions × O(log n) each = O(n log n) total. This beats using an unsorted or sorted array (both give O(n²) for sorting via PQ)."
+  },
+  {
+    q: "What is the WORST CASE for ExtractMax using an UNSORTED ARRAY as a priority queue?",
+    opts: ["O(1)", "O(log n)", "O(n)", "O(n log n)"],
+    ans: 2,
+    exp: "With an unsorted array, finding (and removing) the maximum requires scanning ALL n elements — O(n). Insert is O(1) but ExtractMax is expensive."
+  },
+  {
+    q: "In a hash table, a COLLISION occurs when:",
+    opts: ["The table becomes full", "Two different keys hash to the same slot", "The load factor α > 1", "A key hashes to slot 0"],
+    ans: 1,
+    exp: "A collision is when h(k1) = h(k2) for keys k1 ≠ k2. Both want the same slot. This is the fundamental problem hash tables must manage via chaining or open addressing."
+  },
+  {
+    q: "In chaining, what is the EXPECTED search time assuming uniform hashing?",
+    opts: ["O(1)", "O(α)", "Θ(α + 1)", "O(n)"],
+    ans: 2,
+    exp: "Expected search time is Θ(α + 1) where α = n/m is the load factor. The +1 accounts for computing the hash itself. When α = O(1) (m grows with n), this is O(1)."
+  },
+  {
+    q: "The load factor α = n/m represents:",
+    opts: ["Number of collisions", "Average number of elements per slot", "Size of the hash table", "Number of probes needed"],
+    ans: 1,
+    exp: "α = n/m is the load factor: n elements stored in m slots. It represents the average chain length in chaining, and the expected number of probes increases with α in open addressing."
+  },
+  {
+    q: "Universal hashing uses formula h(k) = ((ak+b) mod p) mod m. What guarantees its quality?",
+    opts: ["a and b are fixed constants", "p is smaller than m", "a and b are chosen randomly from {1,...,p-1}", "The function is injective"],
+    ans: 2,
+    exp: "Random selection of a and b makes it hard for an adversary to construct keys that all collide. Any two distinct keys have probability 1/m of colliding — the theoretical minimum!"
+  },
+  {
+    q: "In OPEN ADDRESSING, what happens when the hash table is completely full?",
+    opts: ["Elements spill into a linked list", "The table resizes automatically", "No more insertions can be made", "The oldest element is evicted"],
+    ans: 2,
+    exp: "Unlike chaining, open addressing stores everything IN the table. Once all m slots are occupied (n = m, α = 1), no more insertions are possible — the algorithm returns an overflow error."
+  },
+  {
+    q: "Linear probing uses h(k,j) = (h(k) + j) mod m. If h(k) = 3 and slots 3, 4, 5 are full, where does the key go?",
+    opts: ["Slot 3 (replaces existing)", "Slot 6", "Slot 0", "Cannot insert"],
+    ans: 1,
+    exp: "Linear probing tries h(k,0)=3 (full), h(k,1)=4 (full), h(k,2)=5 (full), h(k,3)=6 (empty!) → places at slot 6. We probe sequentially until finding an empty slot."
+  },
+  {
+    q: "A nearly complete binary tree with height h has how many nodes?",
+    opts: ["Exactly 2^h", "Between 2^h − 1 and 2^(h+1) − 1", "Exactly 2^(h+1) − 1", "Between 2^(h−1) and 2^h"],
+    ans: 1,
+    exp: "A nearly complete tree of height h contains at least 2^h − 1 nodes (fully complete at h−1 plus just the root's children at level h) and at most 2^(h+1) − 1 nodes (full complete tree at h)."
+  },
+  {
+    q: "For open addressing, if α ≤ 1/2 (table ≤ half full), expected runtime per operation is:",
+    opts: ["O(n)", "O(log n)", "O(1/(1−α)) ≤ O(2) = O(1)", "O(α²)"],
+    ans: 2,
+    exp: "Expected runtime = O(1/(1−α)). When α = 1/2: 1/(1−0.5) = 2 = O(1). Keep your open addressing table at most half full for guaranteed O(1) expected performance!"
+  }
+];
+
+let quizAnswers = {};
+let quizSubmitted = false;
+
+function startQuiz() {
+  document.getElementById('quizIntro').style.display = 'none';
+  document.getElementById('quizBody').style.display = 'block';
+  quizAnswers = {};
+  quizSubmitted = false;
+  renderQuizQuestions();
+}
+
+function renderQuizQuestions() {
+  const letters = ['A', 'B', 'C', 'D'];
+  let html = '';
+  QUESTIONS.forEach((q, qi) => {
+    html += `<div class="quiz-q" id="qq${qi}">
+      <div class="q-num">Question ${qi + 1} of ${QUESTIONS.length}</div>
+      <div class="q-text">${q.q}</div>
+      <div>`;
+    q.opts.forEach((opt, oi) => {
+      html += `<div class="quiz-option" id="opt_${qi}_${oi}" onclick="selectAnswer(${qi}, ${oi})">
+        <span class="option-letter">${letters[oi]}</span>
+        <span>${opt}</span>
+      </div>`;
+    });
+    html += `</div>
+      <div class="explanation" id="exp${qi}">${q.exp}</div>
+    </div>`;
+  });
+  document.getElementById('quizQuestions').innerHTML = html;
+}
+
+function selectAnswer(qi, oi) {
+  if (quizSubmitted) return;
+  quizAnswers[qi] = oi;
+  // Clear previous selection for this question
+  for (let j = 0; j < QUESTIONS[qi].opts.length; j++) {
+    const el = document.getElementById(`opt_${qi}_${j}`);
+    el.style.background = '';
+    el.style.borderColor = '';
+    el.style.fontWeight = '';
+  }
+  const sel = document.getElementById(`opt_${qi}_${oi}`);
+  sel.style.background = 'var(--purple-light)';
+  sel.style.borderColor = 'var(--purple)';
+  sel.style.fontWeight = '500';
+}
+
+function submitQuiz() {
+  quizSubmitted = true;
+  let score = 0;
+  QUESTIONS.forEach((q, qi) => {
+    const userAns = quizAnswers[qi];
+    for (let oi = 0; oi < q.opts.length; oi++) {
+      const el = document.getElementById(`opt_${qi}_${oi}`);
+      el.style.background = '';
+      el.style.borderColor = '';
+      el.style.fontWeight = '';
+      el.className = 'quiz-option';
+    }
+    if (userAns !== undefined) {
+      if (userAns === q.ans) {
+        score++;
+        document.getElementById(`opt_${qi}_${userAns}`).classList.add('correct');
+      } else {
+        document.getElementById(`opt_${qi}_${userAns}`).classList.add('selected-wrong');
+        document.getElementById(`opt_${qi}_${q.ans}`).classList.add('correct');
+      }
+    } else {
+      document.getElementById(`opt_${qi}_${q.ans}`).classList.add('correct');
+    }
+    document.getElementById(`exp${qi}`).classList.add('show');
+  });
+
+  document.getElementById('quizBody').style.display = 'none';
+  document.getElementById('quizResults').style.display = 'block';
+  document.getElementById('scoreNum').textContent = `${score}/${QUESTIONS.length}`;
+  const pct = Math.round(score / QUESTIONS.length * 100);
+  let msg = pct >= 80 ? '🎉 Excellent! You know this material well.' :
+            pct >= 60 ? 'Good effort! Review the explanations below.' :
+            'Keep studying — review each section and retry.';
+  document.getElementById('scoreSub').textContent = `${pct}% — ${msg}`;
+
+  // Show review
+  const letters = ['A', 'B', 'C', 'D'];
+  let reviewHtml = '<h3 class="section-h">Detailed Review</h3>';
+  QUESTIONS.forEach((q, qi) => {
+    const correct = quizAnswers[qi] === q.ans;
+    reviewHtml += `<div class="quiz-q">
+      <div class="q-num" style="color:${correct ? 'var(--green)' : 'var(--red)'}">${correct ? '✓ Correct' : '✗ Incorrect'} — Q${qi+1}</div>
+      <div class="q-text">${q.q}</div>
+      <div style="font-size:13px; margin-bottom:8px;">
+        <strong>Correct answer:</strong> ${letters[q.ans]}. ${q.opts[q.ans]}
+        ${quizAnswers[qi] !== undefined && !correct ? `<br><span style="color:var(--red)">Your answer: ${letters[quizAnswers[qi]]}. ${q.opts[quizAnswers[qi]]}</span>` : ''}
+      </div>
+      <div class="explanation show">${q.exp}</div>
+    </div>`;
+  });
+  document.getElementById('quizReview').innerHTML = reviewHtml;
+  sectionDone[10] = true;
+  updateProgress();
+}
+
+function retakeQuiz() {
+  document.getElementById('quizResults').style.display = 'none';
+  document.getElementById('quizIntro').style.display = 'block';
+}
+
+// ============================================================
+//  SECTION INIT ROUTER
+// ============================================================
+function initSection(idx) {
+  if (idx === 0) initSection0();
+  else if (idx === 1) initSection1();
+  else if (idx === 2) initSection2();
+  else if (idx === 3) initSection3();
+  else if (idx === 5) initSection5();
+  else if (idx === 6) initSection6();
+  else if (idx === 7) initSection7();
+  else if (idx === 8) initSection8();
+}
+
+// Init on load
+window.onload = () => {
+  initSection0();
+};
+</script>
+</body>
+</html>
